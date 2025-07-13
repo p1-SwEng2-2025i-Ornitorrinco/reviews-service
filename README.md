@@ -8,7 +8,6 @@ Microservicio para gestionar **reseñas** y **reputación** de usuarios sobre se
    ```bash
    git clone git@github.com:p1-SwEng2-2025i-Ornitorrinco/reviews-service.git
    cd reviews-service
-````
 
 2. Crea y activa el entorno virtual (Windows + CMD):
 
