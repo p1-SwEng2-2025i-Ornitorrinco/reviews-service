@@ -7,6 +7,7 @@ from bson import ObjectId
 from app.models import ReviewCreate, ReviewOut
 from app.crud import (
     insert_review,
+    get_review_by_id,
     get_reviews_by_service,
     delete_review_by_id,
     recalc_user_reputation
@@ -21,7 +22,7 @@ async def create_review(review: ReviewCreate):
     # Recalcula reputación del owner del servicio
     owner_id = await recalc_user_reputation(review.service_id)
     # Recupera documento para devolverlo
-    inserted = await insert_review.get_by_id(new_id)  # o similar
+    inserted = await get_review_by_id(new_id)
     return inserted
 
 @router.get("/service/{service_id}", response_model=List[ReviewOut])

@@ -7,7 +7,7 @@ from app.models import ReviewCreate, ReviewOut
 
 # Inicializar cliente Mongo (usa tu MONGO_URI en .env)
 import os
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client.get_default_database()
 
@@ -44,15 +44,15 @@ async def recalc_user_reputation(service_id: ObjectId) -> ObjectId:
     1) Busca el servicio para obtener owner_id.
     2) Agrega todas las reseñas de servicios de ese owner.
     3) Calcula promedio y actualiza el usuario.
-    Devuelve el owner_id.
+    Devuelve el cliente_id.
     """
-    svc = await db.services.find_one({"_id": service_id})
+    svc = await db.ofertas.find_one({"_id": service_id})
     if not svc:
         raise ValueError("Service no encontrado")
-    owner_id = svc["owner_id"]
+    cliente_id = svc["cliente_id"]
 
     # Obtener IDs de todos los servicios del owner
-    services = await db.services.find({"owner_id": owner_id}).to_list(length=None)
+    services = await db.ofertas.find({"cliente_id": cliente_id}).to_list(length=None)
     svc_ids = [s["_id"] for s in services]
 
     # Agregación para promedio de rating
@@ -65,8 +65,8 @@ async def recalc_user_reputation(service_id: ObjectId) -> ObjectId:
 
     # Actualizar reputación del usuario
     await db.users.update_one(
-        {"_id": owner_id},
+        {"_id": cliente_id},
         {"$set": {"reputation": new_rep}}
     )
 
-    return owner_id
+    return cliente_id
