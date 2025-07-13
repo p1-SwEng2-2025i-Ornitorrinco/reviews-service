@@ -1,22 +1,28 @@
-# app/models.py
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 from bson import ObjectId
 
-# Helper para validar ObjectId
 class PyObjectId(ObjectId):
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, info=None):
+        """
+        Pydantic v2 llama a validate con (cls, v, info).
+        Hacemos info opcional para compatibilidad.
+        """
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid objectid")
         return ObjectId(v)
 
-# Schema de creación (entrada)
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {'type': 'string', 'pattern': '^[0-9a-fA-F]{24}$'}
+
+
 class ReviewCreate(BaseModel):
     service_id: PyObjectId = Field(..., alias="service_id")
     reviewer_id: PyObjectId = Field(..., alias="reviewer_id")
@@ -24,10 +30,9 @@ class ReviewCreate(BaseModel):
     comment: Optional[str] = None
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
         json_encoders = {ObjectId: str}
 
-# Schema para respuesta (salida)
 class ReviewOut(BaseModel):
     id: PyObjectId = Field(..., alias="_id")
     service_id: PyObjectId
@@ -37,5 +42,5 @@ class ReviewOut(BaseModel):
     created_at: datetime
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
         json_encoders = {ObjectId: str, datetime: lambda dt: dt.isoformat()}
