@@ -15,15 +15,14 @@ from app.crud import (
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-@router.post("", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ReviewOut, status_code=201)
 async def create_review(review: ReviewCreate):
-    # Inserta la reseña
     new_id = await insert_review(review)
-    # Recalcula reputación del owner del servicio
-    owner_id = await recalc_user_reputation(review.service_id)
-    # Recupera documento para devolverlo
+    await recalc_user_reputation(review.service_id)
+    # Aquí traemos el documento entero, con created_at
     inserted = await get_review_by_id(new_id)
     return inserted
+
 
 @router.get("/service/{service_id}", response_model=List[ReviewOut])
 async def list_reviews_by_service(service_id: str):
