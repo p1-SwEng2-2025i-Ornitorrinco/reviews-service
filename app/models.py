@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from bson import ObjectId
 
@@ -39,8 +39,18 @@ class ReviewOut(BaseModel):
     reviewer_id: PyObjectId
     rating: int
     comment: Optional[str]
-    created_at: datetime
+    created_at: datetime        # ← aquí
 
-    class Config:
-        validate_by_name = True
-        json_encoders = {ObjectId: str, datetime: lambda dt: dt.isoformat()}
+    model_config = ConfigDict(
+        validate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "_id": "60d9f9f3e1dfe73b8c2f9abc",
+                "service_id": "684ca91a36e9e6c9b9eb1f63",
+                "reviewer_id": "60d9f9f3e1dfe73b8c2f9abd",
+                "rating": 5,
+                "comment": "¡Excelente!",
+                "created_at": "2025-07-14T17:30:00.000Z"
+            }
+        }
+    )
