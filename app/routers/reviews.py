@@ -1,7 +1,6 @@
 # app/routers/reviews.py
 from fastapi import APIRouter, HTTPException, status
 from typing import List
-from datetime import datetime
 from bson import ObjectId
 
 from app.models import ReviewCreate, ReviewOut
@@ -15,14 +14,18 @@ from app.crud import (
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-@router.post("", response_model=ReviewOut, status_code=201)
+@router.post("", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
 async def create_review(review: ReviewCreate):
     new_id = await insert_review(review)
-    await recalc_user_reputation(review.service_id)
-    # Aquí traemos el documento entero, con created_at
-    inserted = await get_review_by_id(new_id)
-    return inserted
-
+    try:
+        await recalc_user_reputation(ObjectId(review.service_id))
+    except ValueError as e:
+        await delete_review_by_id(new_id)
+        raise HTTPException(404, detail=str(e))
+    dto = await get_review_by_id(new_id)
+    if not dto:
+        raise HTTPException(500, "Error interno al leer la reseña creada")
+    return dto
 
 @router.get("/service/{service_id}", response_model=List[ReviewOut])
 async def list_reviews_by_service(service_id: str):
@@ -38,7 +41,6 @@ async def delete_review(review_id: str):
         oid = ObjectId(review_id)
     except:
         raise HTTPException(400, "review_id inválido")
-    deleted = await delete_review_by_id(oid)
-    if not deleted:
+    if not await delete_review_by_id(oid):
         raise HTTPException(404, "Reseña no encontrada")
     return
