@@ -2,60 +2,65 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from datetime import datetime
-
-from app.models import ReviewCreate, ReviewOut
-
-# Inicializar cliente Mongo (usa tu MONGO_URI en .env)
 import os
+
+from app.models import ReviewCreate
+
+# Conecta a la DB correcta
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client.get_default_database()
 
-# --- CRUD de Reviews ---
-
 async def insert_review(review: ReviewCreate) -> ObjectId:
-    doc = review.dict(by_alias=True)
+    # review.model_dump(by_alias=True) usa los aliases de Pydantic
+    doc = review.model_dump(by_alias=True)
     doc["created_at"] = datetime.utcnow()
     res = await db.reviews.insert_one(doc)
     return res.inserted_id
 
-async def get_review_by_id(review_id: ObjectId) -> ReviewOut:
+async def get_review_by_id(review_id: ObjectId) -> dict:
     d = await db.reviews.find_one({"_id": review_id})
     if not d:
         return None
-    return ReviewOut(**d)
+    # convierte todos los campos a tipos primitivos
+    return {
+        "id":          str(d["_id"]),
+        "service_id":  str(d["service_id"]),
+        "reviewer_id": str(d["reviewer_id"]),
+        "rating":      d["rating"],
+        "comment":     d.get("comment"),
+        "created_at":  d["created_at"].isoformat(),
+    }
 
-async def get_reviews_by_service(service_id: ObjectId) -> list[ReviewOut]:
+async def get_reviews_by_service(service_id: ObjectId) -> list[dict]:
     cursor = db.reviews.find({"service_id": service_id})
-    items = []
+    out = []
     async for d in cursor:
-        items.append(ReviewOut(**d))
-    return items
+        out.append({
+            "id":          str(d["_id"]),
+            "service_id":  str(d["service_id"]),
+            "reviewer_id": str(d["reviewer_id"]),
+            "rating":      d["rating"],
+            "comment":     d.get("comment"),
+            "created_at":  d["created_at"].isoformat(),
+        })
+    return out
 
 async def delete_review_by_id(review_id: ObjectId) -> bool:
     res = await db.reviews.delete_one({"_id": review_id})
     return res.deleted_count == 1
 
-# --- Reputación ---
-
-async def recalc_user_reputation(service_id: ObjectId) -> ObjectId:
-    """
-    Dado un service_id:
-    1) Busca el servicio para obtener owner_id.
-    2) Agrega todas las reseñas de servicios de ese owner.
-    3) Calcula promedio y actualiza el usuario.
-    Devuelve el cliente_id.
-    """
+async def recalc_user_reputation(service_id: ObjectId) -> str:
     svc = await db.ofertas.find_one({"_id": service_id})
     if not svc:
         raise ValueError("Service no encontrado")
-    cliente_id = svc["cliente_id"]
+    owner_id = svc.get("cliente_id")
+    if not owner_id:
+        raise ValueError("El servicio no tiene asignado cliente_id")
 
-    # Obtener IDs de todos los servicios del owner
-    services = await db.ofertas.find({"cliente_id": cliente_id}).to_list(length=None)
+    # Recalcula promedio
+    services = await db.ofertas.find({"cliente_id": owner_id}).to_list(None)
     svc_ids = [s["_id"] for s in services]
-
-    # Agregación para promedio de rating
     pipeline = [
         {"$match": {"service_id": {"$in": svc_ids}}},
         {"$group": {"_id": None, "avgRating": {"$avg": "$rating"}}}
@@ -63,10 +68,9 @@ async def recalc_user_reputation(service_id: ObjectId) -> ObjectId:
     agg = await db.reviews.aggregate(pipeline).to_list(1)
     new_rep = float(agg[0]["avgRating"]) if agg else 0.0
 
-    # Actualizar reputación del usuario
+    # Actualiza reputación
     await db.users.update_one(
-        {"_id": cliente_id},
+        {"_id": owner_id},
         {"$set": {"reputation": new_rep}}
     )
-
-    return cliente_id
+    return str(owner_id)
