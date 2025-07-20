@@ -9,7 +9,8 @@ from app.crud import (
     get_review_by_id,
     get_reviews_by_service,
     delete_review_by_id,
-    recalc_user_reputation
+    recalc_user_reputation,
+    get_reviews_by_reviewer,
 )
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
@@ -45,13 +46,12 @@ async def delete_review(review_id: str):
         raise HTTPException(404, "Reseña no encontrada")
     return
 
-@router.get("/users/{reviewer_id}/reviews", response_model=list[ReviewOut])
-async def get_reviews_by_user(reviewer_id: str):
+
+@router.get("/reviewer/{reviewer_id}", response_model=List[ReviewOut])
+async def list_reviews_by_reviewer(reviewer_id: str):
     try:
         oid = ObjectId(reviewer_id)
     except:
-        raise HTTPException(400, "reviewer_id inválido")
+        raise HTTPException(status_code=400, detail="reviewer_id inválido")
     reviews = await get_reviews_by_reviewer(oid)
-    if not reviews:
-        raise HTTPException(404, "No se encontraron reseñas para este usuario")
     return reviews

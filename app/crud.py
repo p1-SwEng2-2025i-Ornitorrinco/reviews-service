@@ -1,6 +1,7 @@
 # app/crud.py
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
+from typing import List
 from datetime import datetime
 import os
 
@@ -79,7 +80,11 @@ async def recalc_user_reputation(service_id: ObjectId) -> str:
     )
     return str(owner_id)
 
-async def get_reviews_by_reviewer(reviewer_id: ObjectId) -> list[dict]:
+async def get_reviews_by_reviewer(reviewer_id: ObjectId) -> List[dict]:
+    """
+    Devuelve una lista de dicts (con campos serializables) de todas las reseñas
+    cuyo reviewer_id coincide.
+    """
     cursor = db.reviews.find({"reviewer_id": reviewer_id})
     out = []
     async for d in cursor:
