@@ -4,9 +4,10 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 import uvicorn
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.observability import init_observability
 from app.routers.reviews import router as reviews_router
+
 
 # 1) Cargar variables de entorno
 load_dotenv()
@@ -15,6 +16,8 @@ PORT      = int(os.getenv("PORT", 8000))
 
 # 2) Crear instancia FastAPI
 app = FastAPI(title="Reviews Service")
+
+app.add_middleware(CORSMiddleware, allow_origins=[""], allow_credentials=True, allow_methods=[""], allow_headers=["*"])
 
 # 3) Conectar Mongo
 mongo_client = AsyncIOMotorClient(MONGO_URI)

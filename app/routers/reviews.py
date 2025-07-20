@@ -44,3 +44,14 @@ async def delete_review(review_id: str):
     if not await delete_review_by_id(oid):
         raise HTTPException(404, "Reseña no encontrada")
     return
+
+@router.get("/users/{reviewer_id}/reviews", response_model=list[ReviewOut])
+async def get_reviews_by_user(reviewer_id: str):
+    try:
+        oid = ObjectId(reviewer_id)
+    except:
+        raise HTTPException(400, "reviewer_id inválido")
+    reviews = await get_reviews_by_reviewer(oid)
+    if not reviews:
+        raise HTTPException(404, "No se encontraron reseñas para este usuario")
+    return reviews
