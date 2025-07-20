@@ -14,6 +14,10 @@ db = client.get_default_database()
 async def insert_review(review: ReviewCreate) -> ObjectId:
     # review.model_dump(by_alias=True) usa los aliases de Pydantic
     doc = review.model_dump(by_alias=True)
+    # Asegurarnos de que Mongo almacene ObjectId, no strings:
+    from bson import ObjectId as _OID
+    doc["service_id"]  = _OID(doc["service_id"])
+    doc["reviewer_id"] = _OID(doc["reviewer_id"])
     doc["created_at"] = datetime.utcnow()
     res = await db.reviews.insert_one(doc)
     return res.inserted_id
