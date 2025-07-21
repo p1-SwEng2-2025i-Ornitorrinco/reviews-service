@@ -1,11 +1,19 @@
 # app/crud.py
+
+import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from typing import List
 from datetime import datetime
 import os
+import logging
 
 from app.models import ReviewCreate
+from app.clients.users_client import users_client
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Conecta a la DB correcta
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
@@ -80,6 +88,56 @@ async def recalc_user_reputation(service_id: ObjectId) -> str:
     )
     return str(owner_id)
 
+
+async def recalc_user_reputation(service_id: ObjectId) -> str:
+    """
+    Recalcula la reputación del propietario de un servicio y la actualiza
+    en el servicio de usuarios mediante HTTP.
+    """
+    try:
+        # Buscar el servicio en la base de datos local
+        svc = await db.ofertas.find_one({"_id": service_id})
+        if not svc:
+            logger.error(f"Servicio {service_id} no encontrado")
+            raise ValueError("Service no encontrado")
+        
+        owner_id = svc.get("cliente_id")
+        if not owner_id:
+            logger.error(f"Servicio {service_id} no tiene cliente_id asignado")
+            raise ValueError("El servicio no tiene asignado cliente_id")
+
+        # Verificar que el usuario existe en el otro servicio
+        user_info = await users_client.get_user_by_id(str(owner_id))
+        if not user_info:
+            logger.error(f"Usuario {owner_id} no encontrado en el servicio de usuarios")
+            raise ValueError(f"Usuario {owner_id} no encontrado en el servicio de usuarios")
+
+        # Obtener todos los servicios del usuario
+        services = await db.ofertas.find({"cliente_id": owner_id}).to_list(None)
+        svc_ids = [s["_id"] for s in services]
+        
+        # Calcular promedio de ratings
+        pipeline = [
+            {"$match": {"service_id": {"$in": svc_ids}}},
+            {"$group": {"_id": None, "avgRating": {"$avg": "$rating"}}}
+        ]
+        agg = await db.reviews.aggregate(pipeline).to_list(1)
+        new_reputation = float(agg[0]["avgRating"]) if agg else 0.0
+        
+        # Actualizar reputación en el servicio de usuarios
+        success = await users_client.update_user_reputation(str(owner_id), new_reputation)
+        
+        if not success:
+            logger.error(f"No se pudo actualizar la reputación del usuario {owner_id}")
+            raise ValueError(f"No se pudo actualizar la reputación del usuario {owner_id}")
+        
+        logger.info(f"Reputación actualizada exitosamente para usuario {owner_id}: {new_reputation}")
+        return str(owner_id)
+        
+    except Exception as e:
+        logger.error(f"Error en recalc_user_reputation: {str(e)}")
+        raise
+
 async def get_reviews_by_reviewer(reviewer_id: ObjectId) -> List[dict]:
     """
     Devuelve una lista de dicts (con campos serializables) de todas las reseñas
@@ -96,4 +154,3 @@ async def get_reviews_by_reviewer(reviewer_id: ObjectId) -> List[dict]:
             "comment":     d.get("comment"),
             "created_at":  d["created_at"].isoformat(),
         })
-    return out
