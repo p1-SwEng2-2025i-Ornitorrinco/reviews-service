@@ -46,7 +46,6 @@ async def delete_review(review_id: str):
         raise HTTPException(404, "Reseña no encontrada")
     return
 
-
 @router.get("/reviewer/{reviewer_id}", response_model=List[ReviewOut])
 async def list_reviews_by_reviewer(reviewer_id: str):
     try:
