@@ -2,12 +2,15 @@
 
 Microservicio para gestionar **reseñas** y **reputación** de usuarios sobre servicios.
 
+---
+
 ## 🚀 Levantar localmente
 
 1. Clona el repositorio y entra en él:
    ```bash
    git clone git@github.com:p1-SwEng2-2025i-Ornitorrinco/reviews-service.git
    cd reviews-service
+
 
 2. Crea y activa el entorno virtual (Windows + CMD):
 
@@ -25,8 +28,9 @@ Microservicio para gestionar **reseñas** y **reputación** de usuarios sobre se
 4. Configura variables de entorno en un archivo `.env`:
 
    ```dotenv
-   MONGO_URI=mongodb://localhost:27017/yourdb
-   PORT=8000
+   MONGO_URI=mongodb://localhost:27017/servicios_app
+   PORT=8003
+   USUARIOS_API_URL=http://localhost:8000
    ```
 
 5. Levanta el servicio:
@@ -35,52 +39,37 @@ Microservicio para gestionar **reseñas** y **reputación** de usuarios sobre se
    uvicorn app.main:app --reload
    ```
 
-6. Corre pruebas:
+6. (Opcional) Arrancar con Docker Compose:
 
-   ```cmd
-   pytest
+   ```bash
+   docker-compose up --build
    ```
 
-## 📚 Endpoints
+7. Corre pruebas y genera reporte de cobertura:
 
-| Método | Ruta                            | Descripción                  |
-| ------ | ------------------------------- | ---------------------------- |
-| GET    | `/health`                       | Estado del servicio          |
-| POST   | `/reviews`                      | Crea una nueva reseña        |
-| GET    | `/reviews/service/{service_id}` | Lista reseñas de un servicio |
-| DELETE | `/reviews/{review_id}`          | Elimina una reseña           |
-
-### Ejemplo de payload para POST `/reviews`
-
-```json
-{
-  "service_id": "60d9f9f3e1dfe73b8c2f9abc",
-  "reviewer_id": "60d9f9f3e1dfe73b8c2f9def",
-  "rating": 5,
-  "comment": "Excelente servicio"
-}
-```
-
-## 🌳 GitFlow
-
-* Ramas protegidas: `main`, `develop`
-* Feature branches: `feature/*`
-* Para iniciar:
-
-  ```bash
-  git flow init
-  git checkout -b feature/reviews-module develop
-  ```
-* Nuevo código → PR contra `develop` → revisión → merge.
-
-## 📈 Observabilidad
-
-* Integrado con OpenTelemetry (FastAPI & Motor).
-* Middleware para contadores de peticiones, latencias y errores.
-* Se puede ver trazas/métricas con un backend compatible.
+   ```bash
+   pytest --cov=app
+   ```
 
 ---
 
-Con esto tienes un **servicio completo**, pruebas y documentación.
-Ahora puedes crear tu PR en la rama `feature/reviews-module` para revisión.
-¿Algo más en lo que te pueda ayudar?
+## 📚 Endpoints
+
+| Método | Ruta                              | Descripción                                                      |
+| ------ | --------------------------------- | ---------------------------------------------------------------- |
+| GET    | `/health`                         | Estado del servicio                                              |
+| GET    | `/metrics`                        | Métricas Prometheus (peticiones, latencias, errores, tamaños)    |
+| POST   | `/reviews`                        | Crea una nueva reseña; recalcula reputación y actualiza usuarios |
+| GET    | `/reviews/service/{service_id}`   | Lista reseñas de un servicio                                     |
+| GET    | `/reviews/reviewer/{reviewer_id}` | Lista reseñas hechas por un reviewer                             |
+| DELETE | `/reviews/{review_id}`            | Elimina una reseña                                               |
+
+### Swagger / OpenAPI
+
+Accede a la UI interactiva en:
+
+```
+http://localhost:8003/docs
+```
+---
+
