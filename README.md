@@ -39,18 +39,6 @@ Microservicio para gestionar **reseñas** y **reputación** de usuarios sobre se
    uvicorn app.main:app --reload
    ```
 
-6. (Opcional) Arrancar con Docker Compose:
-
-   ```bash
-   docker-compose up --build
-   ```
-
-7. Corre pruebas y genera reporte de cobertura:
-
-   ```bash
-   pytest --cov=app
-   ```
-
 ---
 
 ## 📚 Endpoints
