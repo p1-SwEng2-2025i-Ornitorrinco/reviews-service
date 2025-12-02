@@ -6,6 +6,7 @@ from bson import ObjectId
 from typing import List
 from datetime import datetime
 import os
+from urllib.parse import urlparse
 import motor.motor_asyncio
 
 from app.models import ReviewCreate
@@ -19,8 +20,19 @@ def _mongo_uri() -> str:
 
 # Conecta a la DB correcta
 MONGO_URI = _mongo_uri()
+DB_NAME = os.getenv("MONGO_DB_NAME")
+
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
-db = client.get_default_database()
+
+def _pick_db(client: motor.motor_asyncio.AsyncIOMotorClient):
+    parsed = urlparse(MONGO_URI)
+    has_db = bool(parsed.path and parsed.path.strip("/"))
+    if has_db:
+        return client.get_default_database()
+    db_name = DB_NAME or "servicios_app"
+    return client[db_name]
+
+db = _pick_db(client)
 
 # URL del servicio de usuarios
 USUARIOS_API_URL = os.getenv("USUARIOS_API_URL", "http://localhost:8001")
