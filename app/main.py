@@ -11,8 +11,16 @@ from app.routers.reviews import router as reviews_router
 
 # 1) Cargar variables de entorno
 load_dotenv()
-# Debe incluir base de datos para que get_default_database funcione (coincide con crud)
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
+
+def _mongo_uri() -> str:
+    # Prioriza variables de despliegue (Heroku suele usar MONGODB_URI)
+    uri = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
+    if uri:
+        return uri
+    # Fallback para desarrollo local
+    return "mongodb://localhost:27017/servicios_app"
+
+MONGO_URI = _mongo_uri()
 PORT      = int(os.getenv("PORT", 8000))
 
 # 2) Crear instancia FastAPI

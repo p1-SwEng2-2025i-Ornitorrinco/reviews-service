@@ -10,8 +10,15 @@ import motor.motor_asyncio
 
 from app.models import ReviewCreate
 
+def _mongo_uri() -> str:
+    uri = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
+    if uri:
+        return uri
+    # Fallback local
+    return "mongodb://localhost:27017/servicios_app"
+
 # Conecta a la DB correcta
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
+MONGO_URI = _mongo_uri()
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = client.get_default_database()
 
