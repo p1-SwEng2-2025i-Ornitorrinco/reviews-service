@@ -11,7 +11,7 @@ from app.models import ReviewCreate
 
 # Conecta a la DB correcta
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/servicios_app")
-client = AsyncIOMotorClient(MONGO_URI)
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = client.get_default_database()
 
 # URL del servicio de usuarios
