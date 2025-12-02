@@ -34,8 +34,8 @@ def _pick_db(client: motor.motor_asyncio.AsyncIOMotorClient):
 
 db = _pick_db(client)
 
-# URL del servicio de usuarios
-USUARIOS_API_URL = os.getenv("USUARIOS_API_URL", "http://localhost:8001")
+# URL del servicio de usuarios (Heroku por defecto, variable de entorno tiene prioridad)
+USUARIOS_API_URL = os.getenv("USUARIOS_API_URL", "https://usuarios-api-2d5af8f6584a.herokuapp.com")
 
 async def recalc_user_reputation(service_id: ObjectId) -> str:
     """
